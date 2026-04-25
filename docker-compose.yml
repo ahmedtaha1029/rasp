@@ -1,0 +1,164 @@
+# docker-compose.yml
+
+services:
+
+  db:
+    image: postgres:15-alpine
+    container_name: rasp_db
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - rasp_internal
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: postgres -c max_connections=200
+
+  redis:
+    image: redis:7-alpine
+    container_name: rasp_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - rasp_internal
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    group_add:
+      - "0"
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rasp_backend
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             daphne -b 0.0.0.0 -p 8000 rasp_backend.asgi:application"
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - static_files:/app/staticfiles
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - rasp_internal
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  celery:
+    group_add:
+      - "0"
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rasp_celery
+    restart: unless-stopped
+    command: celery -A rasp_backend worker --loglevel=info --concurrency=4
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - rasp_internal
+      - rasp_bridge
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rasp_celery_beat
+    restart: unless-stopped
+    command: celery -A rasp_backend beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+    networks:
+      - rasp_internal
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend/rasp-frontend 
+      dockerfile: Dockerfile
+    container_name: rasp_frontend
+    restart: unless-stopped
+    networks:
+      - rasp_internal
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: rasp_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - static_files:/app/staticfiles:ro
+    networks:
+      - rasp_internal
+    depends_on:
+      - backend
+      - frontend
+
+networks:
+  rasp_internal:
+    driver: bridge
+  rasp_bridge:
+    driver: bridge
+    name: rasp_bridge
+    internal: true
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_files:

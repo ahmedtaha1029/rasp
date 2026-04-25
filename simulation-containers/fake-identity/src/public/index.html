@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Candidate Profile Review</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; }
+    .header { background: #1a1a2e; color: white; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .header-title { font-size: 16px; font-weight: 600; }
+    .header-sub { font-size: 12px; color: #93c5fd; margin-top: 2px; }
+    .layout { display: grid; grid-template-columns: 340px 1fr; height: calc(100vh - 52px); }
+    .sidebar { background: white; border-right: 1px solid #e5e7eb; overflow-y: auto; padding: 20px; }
+
+    /* Profile card */
+    .profile-photo-container {
+      position: relative; width: 100px; height: 100px; margin: 0 auto 12px; cursor: pointer;
+    }
+    .profile-photo {
+      width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px; color: white; font-weight: 700; user-select: none;
+    }
+    .photo-warning {
+      position: absolute; bottom: 2px; right: 2px; background: #ef4444; border-radius: 50%;
+      width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: white; cursor: pointer; display: none;
+    }
+    .profile-name { text-align: center; font-size: 18px; font-weight: 700; color: #111; }
+    .profile-role { text-align: center; font-size: 13px; color: #6b7280; margin-top: 4px; }
+    .profile-email { text-align: center; font-size: 12px; font-family: monospace; color: #374151; margin-top: 6px; }
+    .profile-linkedin {
+      display: block; text-align: center; font-size: 11px; color: #1d4ed8; margin-top: 4px;
+      font-family: monospace; cursor: pointer;
+    }
+
+    .section { margin-top: 20px; }
+    .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #9ca3af; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .info-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+    .info-label { color: #6b7280; }
+    .info-value { color: #111; font-weight: 500; }
+    .suspicious-value { color: #dc2626; background: #fef2f2; padding: 1px 6px; border-radius: 4px; }
+    .conflict-badge { font-size: 10px; background: #fef2f2; color: #dc2626; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+
+    /* Main area */
+    .main { padding: 24px; overflow-y: auto; }
+    .ai-artifact-panel {
+      background: #fffbeb; border: 1.5px solid #fcd34d; border-radius: 10px; padding: 16px; margin-bottom: 20px;
+    }
+    .ai-panel-title { font-size: 13px; font-weight: 700; color: #92400e; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .ai-artifact-list { list-style: none; }
+    .ai-artifact-list li { font-size: 12px; color: #78350f; padding: 4px 0; display: flex; gap: 6px; align-items: flex-start; }
+    .ai-artifact-list li::before { content: "⚠"; flex-shrink: 0; }
+
+    .timeline-section { background: white; border-radius: 10px; padding: 16px; border: 1px solid #e5e7eb; margin-bottom: 16px; }
+    .timeline-title { font-size: 13px; font-weight: 600; color: #111; margin-bottom: 12px; }
+    .timeline-entry { display: flex; gap: 12px; margin-bottom: 10px; align-items: flex-start; font-size: 13px; }
+    .timeline-dot { width: 8px; height: 8px; border-radius: 50%; background: #3b82f6; margin-top: 5px; flex-shrink: 0; }
+    .timeline-dot.mismatch { background: #ef4444; }
+    .timeline-label { color: #6b7280; min-width: 120px; }
+    .timeline-value { color: #111; font-weight: 500; }
+    .mismatch-note { font-size: 11px; color: #dc2626; margin-top: 2px; }
+
+    .action-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e5e7eb; padding: 12px 24px; display: flex; justify-content: center; gap: 12px; }
+    .btn-approve { padding: 8px 20px; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; color: #166534; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-flag { padding: 8px 20px; background: #fef2f2; border: 1.5px solid #ef4444; border-radius: 8px; color: #ef4444; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: white; border-radius: 12px; padding: 24px; width: 460px; max-width: 90vw; }
+    .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+    .modal-subtitle { font-size: 13px; color: #6b7280; margin-bottom: 20px; line-height: 1.5; }
+    .reason-option { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; }
+    .reason-option:hover, .reason-option.selected { border-color: #3b82f6; background: #eff6ff; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-cancel { flex: 1; padding: 9px; border: 1px solid #e5e7eb; border-radius: 8px; background: white; cursor: pointer; font-size: 13px; }
+    .btn-submit-flag { flex: 2; padding: 9px; border: none; border-radius: 8px; background: #ef4444; color: white; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-submit-flag:disabled { background: #fca5a5; cursor: default; }
+
+    .feedback-banner { display: none; position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 520px; border-radius: 10px; padding: 14px 18px; z-index: 200; }
+    .feedback-banner.detected { background: #f0fdf4; border: 1.5px solid #86efac; }
+    .feedback-banner.missed   { background: #fef2f2; border: 1.5px solid #fca5a5; }
+    .feedback-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .feedback-title.detected { color: #166534; }
+    .feedback-title.missed   { color: #dc2626; }
+    .feedback-body { font-size: 12px; color: #374151; line-height: 1.5; white-space: pre-line; }
+    .mitre-tag { display: inline-block; margin-top: 6px; background: #f3f4f6; border: 0.5px solid #d1d5db; border-radius: 4px; padding: 2px 8px; font-size: 10px; color: #6b7280; font-family: monospace; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">📋 Candidate Profile Review — Screening Stage</div>
+    <div class="header-sub">Carefully review all candidate details before advancing</div>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <!-- Profile photo with AI artifact indicator -->
+    <div class="profile-photo-container" onclick="trackPhotoClick()" title="Click to inspect photo">
+      <div class="profile-photo" id="profile-avatar">?</div>
+      <div class="photo-warning" id="photo-warning" title="AI artifacts detected">⚠</div>
+    </div>
+    <div class="profile-name" id="profile-name">Loading...</div>
+    <div class="profile-role" id="profile-role">Loading...</div>
+    <div class="profile-email" id="profile-email">Loading...</div>
+    <a class="profile-linkedin" id="profile-linkedin" onclick="trackLinkedIn()">Loading...</a>
+
+    <div class="section">
+      <div class="section-label">Profile Details</div>
+      <div class="info-row">
+        <span class="info-label">Location</span>
+        <span class="info-value" id="info-location">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Availability</span>
+        <span class="info-value" id="info-availability">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Last Role</span>
+        <span class="info-value" id="info-last-role">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Education</span>
+        <span class="info-value" id="info-education">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Experience</span>
+        <span class="info-value" id="info-exp">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- AI artifact warning panel -->
+    <div class="ai-artifact-panel" id="ai-panel" style="display:none" onclick="trackArtifactInspect()">
+      <div class="ai-panel-title">🤖 Photo Analysis — Potential AI Generation</div>
+      <ul class="ai-artifact-list" id="artifact-list"></ul>
+    </div>
+
+    <!-- Geographic / timezone conflict -->
+    <div class="timeline-section">
+      <div class="timeline-title">📍 Location & Timezone Verification</div>
+      <div class="timeline-entry">
+        <div class="timeline-dot"></div>
+        <div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="timeline-label">Claimed location:</span>
+            <span class="timeline-value" id="claimed-location">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="timeline-entry">
+        <div class="timeline-dot mismatch" id="tz-dot"></div>
+        <div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="timeline-label">IP / System timezone:</span>
+            <span class="timeline-value suspicious-value" id="ip-timezone">—</span>
+            <span class="conflict-badge" id="conflict-badge" style="display:none">⚠ MISMATCH</span>
+          </div>
+          <div class="mismatch-note" id="tz-conflict-note" style="display:none">
+            Availability windows conflict with claimed timezone
+          </div>
+        </div>
+      </div>
+      <div class="timeline-entry">
+        <div class="timeline-dot"></div>
+        <div>
+          <span class="timeline-label">Availability:</span>
+          <span class="timeline-value" id="avail-display">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Identity cross-reference -->
+    <div class="timeline-section">
+      <div class="timeline-title">🔍 Identity Cross-Reference</div>
+      <div style="font-size:13px;color:#374151;line-height:1.6;" id="identity-notes">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<div class="action-bar">
+  <button class="btn-approve" onclick="handleApprove()">✓ Advance to Interview</button>
+  <button class="btn-flag"    onclick="openFlagModal()">🚩 Flag Profile</button>
+</div>
+
+<div class="modal-overlay" id="flag-modal">
+  <div class="modal">
+    <div class="modal-title">Flag Candidate Profile</div>
+    <div class="modal-subtitle">Select the suspicious element(s) you identified. Specific answers earn full marks.</div>
+    <div id="reason-options"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeFlagModal()">Cancel</button>
+      <button class="btn-submit-flag" id="btn-submit" onclick="submitFlag()" disabled>Flag Profile</button>
+    </div>
+  </div>
+</div>
+
+<div class="feedback-banner" id="feedback-banner">
+  <span onclick="closeFeedback()" style="float:right;cursor:pointer;color:#9ca3af;">×</span>
+  <div class="feedback-title" id="feedback-title"></div>
+  <div class="feedback-body"  id="feedback-body"></div>
+  <div id="feedback-mitre"></div>
+</div>
+
+<script>
+  let sessionId = null, stageId = null
+  let startTime = Date.now(), hasActed = false, selectedReasons = []
+
+  fetch("context").then(r => r.json()).then(ctx => {
+    sessionId = ctx.session_id; stageId = ctx.stage_id
+    const p = ctx.profile
+
+    document.getElementById("profile-name").textContent = p.name || "Unknown"
+    document.getElementById("profile-avatar").textContent = (p.name || "?")[0].toUpperCase()
+    document.getElementById("profile-role").textContent = p.applied_role || "Applicant"
+    document.getElementById("profile-email").textContent = p.email || ""
+    document.getElementById("profile-linkedin").textContent = p.linkedin_url || ""
+    document.getElementById("info-location").textContent = p.claimed_location || "—"
+    document.getElementById("info-availability").textContent = p.availability || "—"
+    document.getElementById("info-last-role").innerHTML = `<span class="suspicious-value">${escapeHtml(p.last_role || "—")}</span>`
+    document.getElementById("info-education").textContent = p.education || "—"
+    document.getElementById("info-exp").textContent = (p.years_exp || "—") + " years"
+    document.getElementById("claimed-location").textContent = p.claimed_location || "—"
+    document.getElementById("ip-timezone").textContent = p.ip_timezone || "—"
+    document.getElementById("avail-display").textContent = p.availability || "—"
+
+    if (p.availability_tz_conflict) {
+      document.getElementById("conflict-badge").style.display = "inline-block"
+      document.getElementById("tz-conflict-note").style.display = "block"
+    }
+
+    if (p.photo_ai_artifacts) {
+      document.getElementById("photo-warning").style.display = "flex"
+      const panel = document.getElementById("ai-panel")
+      panel.style.display = "block"
+      const list = document.getElementById("artifact-list")
+      const artifacts = (p.photo_description || "").split(",").map(s => s.trim()).filter(Boolean)
+      artifacts.forEach(a => {
+        const li = document.createElement("li")
+        li.textContent = a
+        list.appendChild(li)
+      })
+    }
+
+    const nameRef = p.real_name_ref || p.name
+    document.getElementById("identity-notes").innerHTML = `
+      <strong>LinkedIn URL mismatch:</strong> ${escapeHtml(p.linkedin_url || "")}<br/>
+      <strong>Name on file:</strong> ${escapeHtml(nameRef)}<br/>
+      <strong>Email domain:</strong> ${escapeHtml(p.email || "")}<br/><br/>
+      <span style="color:#dc2626">⚠ Cross-referencing name against LinkedIn shows subtle differences in the username.</span>
+    `
+
+    buildFlagReasons(ctx.indicators || [])
+    sendTelemetry("view", "profile-loaded")
+  }).catch(err => console.error("[ID] Context error:", err))
+
+  window.addEventListener("message", (event) => { if (event.data?.type === "detection_feedback") showFeedback(event.data) })
+
+  function trackPhotoClick()      { sendTelemetry("view", "profile-photo") }
+  function trackLinkedIn()        { sendTelemetry("view", "linkedin-url") }
+  function trackArtifactInspect() { sendTelemetry("view", "ai-artifact-panel") }
+
+  function handleApprove() {
+    if (hasActed) return; hasActed = true
+    sendTelemetry("click", "btn-advance-interview")
+  }
+
+  function sendTelemetry(eventType, element, extra) {
+    const p = { event_type: eventType, offset_ms: Date.now() - startTime, element, stage_id: Number(stageId), selected_reason_indices: [] }
+    if (extra) Object.assign(p, extra)
+    fetch("telemetry", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) }).catch(() => {})
+  }
+
+  function buildFlagReasons(indicators) {
+    const c = document.getElementById("reason-options"); c.innerHTML = ""
+    indicators.forEach((ind, i) => {
+      const div = document.createElement("div"); div.className = "reason-option"; div.id = `reason-${i}`
+      div.innerHTML = `<input type="checkbox" id="cb-${i}" onchange="toggleReason(${i})" /><div style="font-size:13px;font-weight:500;color:#374151">${escapeHtml(ind)}</div>`
+      div.onclick = (e) => { if (e.target.tagName !== "INPUT") { const cb = document.getElementById(`cb-${i}`); cb.checked = !cb.checked; toggleReason(i) } }
+      c.appendChild(div)
+    })
+  }
+
+  function escapeHtml(str) { return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;") }
+  function openFlagModal()  { if (!hasActed) document.getElementById("flag-modal").classList.add("open") }
+  function closeFlagModal() { document.getElementById("flag-modal").classList.remove("open") }
+
+  function toggleReason(i) {
+    const cb = document.getElementById(`cb-${i}`), opt = document.getElementById(`reason-${i}`)
+    if (cb.checked) { selectedReasons.push(i); opt.classList.add("selected") } else { selectedReasons = selectedReasons.filter(x => x !== i); opt.classList.remove("selected") }
+    document.getElementById("btn-submit").disabled = selectedReasons.length === 0
+  }
+
+  function submitFlag() {
+    hasActed = true; closeFlagModal()
+    sendTelemetry("flag", "profile-flag", { selected_reason_indices: selectedReasons })
+  }
+
+  function showFeedback(msg) {
+    const det = msg.detected
+    const b = document.getElementById("feedback-banner")
+    b.className = `feedback-banner ${det ? "detected" : "missed"}`
+    document.getElementById("feedback-title").className = `feedback-title ${det ? "detected" : "missed"}`
+    document.getElementById("feedback-title").textContent = msg.result_label || ""
+    let text = msg.explanation || ""
+    if (!det && msg.indicators_missed?.length) text += "\n\nMissed:\n" + msg.indicators_missed.map(i => `• ${i}`).join("\n")
+    if (msg.best_practice) text += `\n\nBest practice: ${msg.best_practice}`
+    document.getElementById("feedback-body").textContent = text
+    document.getElementById("feedback-mitre").innerHTML = msg.mitre_id ? `<span class="mitre-tag">MITRE ${msg.mitre_id}</span>` : ""
+    b.style.display = "block"
+    setTimeout(closeFeedback, 12000)
+  }
+  function closeFeedback() { document.getElementById("feedback-banner").style.display = "none" }
+</script>
+</body>
+</html>

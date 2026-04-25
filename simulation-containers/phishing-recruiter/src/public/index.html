@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mail — Inbox</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      font-size: 14px;
+    }
+
+    .topbar {
+      background: #1a1a2e;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+    }
+    .topbar-logo { color: #60a5fa; font-weight: 700; font-size: 16px; letter-spacing: -0.5px; }
+    .topbar-search {
+      flex: 1; max-width: 300px; height: 28px;
+      background: rgba(255,255,255,0.1); border: 0.5px solid rgba(255,255,255,0.15);
+      border-radius: 6px; padding: 0 10px; color: rgba(255,255,255,0.7); font-size: 12px;
+    }
+    .topbar-user { margin-left: auto; display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.6); font-size: 12px; }
+    .avatar-small {
+      width: 26px; height: 26px; border-radius: 50%; background: #3b82f6;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 11px; font-weight: 600;
+    }
+
+    .layout { display: grid; grid-template-columns: 200px 300px 1fr; height: calc(100vh - 44px); overflow: hidden; }
+
+    .sidebar { background: #f8f9fa; border-right: 1px solid #e5e7eb; padding: 12px 0; overflow-y: auto; }
+    .folder-item {
+      display: flex; align-items: center; gap: 8px; padding: 7px 16px;
+      cursor: pointer; font-size: 13px; color: #374151; transition: background 0.1s;
+    }
+    .folder-item:hover { background: #e9ecef; }
+    .folder-item.active { background: #dbeafe; color: #1d4ed8; font-weight: 500; }
+    .folder-count {
+      margin-left: auto; background: #ef4444; color: white;
+      font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px;
+    }
+
+    .email-list { border-right: 1px solid #e5e7eb; overflow-y: auto; background: #fff; }
+    .email-list-header {
+      padding: 12px 16px; font-weight: 600; font-size: 13px;
+      border-bottom: 1px solid #f0f0f0; background: #fff;
+      position: sticky; top: 0; z-index: 1;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .email-item { padding: 12px 16px; border-bottom: 1px solid #f5f5f5; cursor: pointer; transition: background 0.1s; position: relative; }
+    .email-item:hover { background: #f8fafc; }
+    .email-item.active { background: #eff6ff; }
+    .email-item.unread .email-item-sender { font-weight: 700; }
+    .unread-dot { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); width: 7px; height: 7px; background: #3b82f6; border-radius: 50%; }
+    .email-item-sender { font-size: 13px; color: #111; margin-bottom: 3px; display: flex; justify-content: space-between; }
+    .email-item-time { font-size: 11px; color: #9ca3af; }
+    .email-item-subject { font-size: 12px; color: #374151; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .email-item-preview { font-size: 11px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .email-reader { display: flex; flex-direction: column; background: #fff; overflow: hidden; }
+
+    .reader-toolbar {
+      padding: 10px 20px; border-bottom: 1px solid #f0f0f0;
+      display: flex; gap: 8px; align-items: center; background: #fff;
+    }
+    .btn {
+      display: flex; align-items: center; gap: 5px; padding: 6px 14px;
+      border-radius: 6px; border: 1px solid #e5e7eb; background: #fff;
+      color: #374151; font-size: 12px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn:hover { background: #f9fafb; border-color: #d1d5db; }
+    .btn.btn-reply:hover  { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+    .btn.btn-forward:hover { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .btn.btn-delete:hover  { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+    .btn-flag {
+      display: flex; align-items: center; gap: 5px; padding: 6px 16px;
+      border-radius: 6px; border: 1.5px solid #ef4444; background: #fff;
+      color: #ef4444; font-size: 12px; font-weight: 600; cursor: pointer;
+      margin-left: auto; transition: all 0.15s;
+    }
+    .btn-flag:hover { background: #fef2f2; }
+
+    .reader-content { flex: 1; overflow-y: auto; padding: 24px; }
+    .email-header { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #f0f0f0; }
+    .email-subject { font-size: 20px; font-weight: 600; color: #111; margin-bottom: 12px; line-height: 1.3; }
+    .email-from { display: flex; align-items: flex-start; gap: 12px; }
+    .sender-avatar {
+      width: 40px; height: 40px; border-radius: 50%; background: #3b82f6;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 14px; font-weight: 600; flex-shrink: 0;
+    }
+    .sender-details { flex: 1; }
+    .sender-name { font-weight: 600; font-size: 14px; color: #111; }
+    .sender-email-display { font-size: 12px; color: #6b7280; margin-top: 2px; font-family: monospace; }
+    .email-date { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+    .email-body { font-size: 14px; line-height: 1.75; color: #374151; white-space: pre-line; }
+    .email-link { color: #1d4ed8; text-decoration: underline; cursor: pointer; }
+    .email-link.suspicious { background: #fef9c3; border-bottom: 2px solid #eab308; }
+
+    .attachment {
+      display: flex; align-items: center; gap: 10px;
+      border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 14px;
+      margin-top: 16px; cursor: pointer; transition: background 0.15s; max-width: 300px;
+    }
+    .attachment:hover { background: #f9fafb; }
+    .attachment-icon {
+      width: 36px; height: 36px; background: #dc2626; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 9px; font-weight: 700; flex-shrink: 0;
+    }
+    .attachment-name { font-size: 13px; font-weight: 600; color: #111; }
+    .attachment-size { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: white; border-radius: 12px; padding: 24px; width: 460px; max-width: 90vw; }
+    .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 6px; color: #111; }
+    .modal-subtitle { font-size: 13px; color: #6b7280; margin-bottom: 20px; line-height: 1.5; }
+    .reason-option {
+      display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px;
+      border: 1.5px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .reason-option:hover { border-color: #93c5fd; background: #eff6ff; }
+    .reason-option.selected { border-color: #3b82f6; background: #eff6ff; }
+    .reason-label { font-size: 13px; font-weight: 500; color: #374151; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-modal-cancel { flex: 1; padding: 9px; border: 1px solid #e5e7eb; border-radius: 8px; background: white; color: #374151; font-size: 13px; cursor: pointer; }
+    .btn-modal-submit { flex: 2; padding: 9px; border: none; border-radius: 8px; background: #ef4444; color: white; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-modal-submit:hover { background: #dc2626; }
+    .btn-modal-submit:disabled { background: #fca5a5; cursor: default; }
+
+    .feedback-banner {
+      display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      width: 90%; max-width: 520px; border-radius: 10px; padding: 14px 18px;
+      z-index: 200; animation: slideUp 0.3s ease;
+    }
+    .feedback-banner.detected { background: #f0fdf4; border: 1.5px solid #86efac; }
+    .feedback-banner.missed   { background: #fef2f2; border: 1.5px solid #fca5a5; }
+    .feedback-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .feedback-title.detected { color: #166534; }
+    .feedback-title.missed   { color: #dc2626; }
+    .feedback-body  { font-size: 12px; color: #374151; line-height: 1.5; }
+    .feedback-close { float: right; cursor: pointer; color: #9ca3af; font-size: 16px; margin-left: 8px; }
+    .mitre-tag {
+      display: inline-block; margin-top: 6px; background: #f3f4f6;
+      border: 0.5px solid #d1d5db; border-radius: 4px; padding: 2px 8px;
+      font-size: 10px; color: #6b7280; font-family: monospace;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">MailBox</div>
+  <input class="topbar-search" type="text" placeholder="Search mail..." readonly />
+  <div class="topbar-user">
+    <div class="avatar-small" id="user-avatar">U</div>
+    <span id="user-name">Loading...</span>
+  </div>
+</div>
+
+<div class="layout">
+
+  <div class="sidebar">
+    <div class="folder-item active">
+      <span>📥</span> Inbox <span class="folder-count">1</span>
+    </div>
+    <div class="folder-item"><span>⭐</span> Starred</div>
+    <div class="folder-item"><span>📤</span> Sent</div>
+    <div class="folder-item"><span>📋</span> Drafts</div>
+    <div class="folder-item"><span>🗑</span> Trash</div>
+    <div class="folder-item" style="margin-top:20px;color:#9ca3af;font-size:11px;cursor:default;">LABELS</div>
+    <div class="folder-item"><span style="color:#ef4444">●</span> Security</div>
+    <div class="folder-item"><span style="color:#3b82f6">●</span> HR</div>
+    <div class="folder-item"><span style="color:#10b981">●</span> Finance</div>
+  </div>
+
+  <div class="email-list">
+    <div class="email-list-header">
+      Inbox
+      <span style="font-size:11px;color:#9ca3af;font-weight:400;">1 unread</span>
+    </div>
+
+    <div class="email-item unread active" id="attack-email-item">
+      <div class="unread-dot"></div>
+      <div class="email-item-sender">
+        <span id="list-sender">Loading...</span>
+        <span class="email-item-time">10:47 AM</span>
+      </div>
+      <div class="email-item-subject" id="list-subject">Loading...</div>
+      <div class="email-item-preview" id="list-preview">Loading...</div>
+    </div>
+
+    <div class="email-item">
+      <div class="email-item-sender"><span>IT Department</span><span class="email-item-time">Yesterday</span></div>
+      <div class="email-item-subject">Scheduled maintenance this weekend</div>
+      <div class="email-item-preview">Systems will be unavailable Saturday 11pm–3am...</div>
+    </div>
+    <div class="email-item">
+      <div class="email-item-sender"><span>Finance Team</span><span class="email-item-time">Mon</span></div>
+      <div class="email-item-subject">Q3 Budget Review — Action Required</div>
+      <div class="email-item-preview">Please review the attached Q3 summary before...</div>
+    </div>
+    <div class="email-item">
+      <div class="email-item-sender"><span>HR Portal</span><span class="email-item-time">Sun</span></div>
+      <div class="email-item-subject">Your leave request has been approved</div>
+      <div class="email-item-preview">Your annual leave request for Dec 24–26 has...</div>
+    </div>
+    <div class="email-item">
+      <div class="email-item-sender"><span>Alex Johnson</span><span class="email-item-time">Fri</span></div>
+      <div class="email-item-subject">Re: Project kickoff meeting notes</div>
+      <div class="email-item-preview">Thanks for sending the notes. I've added my...</div>
+    </div>
+  </div>
+
+  <div class="email-reader">
+    <div class="reader-toolbar">
+      <button class="btn btn-reply"   id="btn-reply"   onclick="handleReply()">↩ Reply</button>
+      <button class="btn btn-forward" id="btn-forward" onclick="handleForward()">→ Forward</button>
+      <button class="btn btn-delete"  id="btn-delete"  onclick="handleDelete()">🗑 Delete</button>
+      <button class="btn-flag"        id="btn-flag"    onclick="openFlagModal()">🚩 Flag as Suspicious</button>
+    </div>
+
+    <div class="reader-content">
+      <div class="email-header">
+        <div class="email-subject" id="reader-subject">Loading...</div>
+        <div class="email-from">
+          <div class="sender-avatar" id="reader-avatar">?</div>
+          <div class="sender-details">
+            <div class="sender-name"         id="reader-name">Loading...</div>
+            <div class="sender-email-display" id="reader-email">Loading...</div>
+            <div class="email-date">Today at 10:47 AM · To: me</div>
+          </div>
+        </div>
+      </div>
+      <div class="email-body" id="reader-body">Loading email content...</div>
+      <div class="attachment" id="attachment-block" style="display:none" onclick="handleDownload()">
+        <div class="attachment-icon" id="attachment-icon">EXE</div>
+        <div>
+          <div class="attachment-name" id="attachment-name"></div>
+          <div class="attachment-size">2.4 MB · Click to download</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Flag modal -->
+<div class="modal-overlay" id="flag-modal">
+  <div class="modal">
+    <div class="modal-title">Flag as Suspicious</div>
+    <div class="modal-subtitle">
+      Select the reason(s) you believe this email is a threat.
+      Identifying the exact red flag earns you full points.
+    </div>
+    <div id="reason-options"></div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeFlagModal()">Cancel</button>
+      <button class="btn-modal-submit" id="btn-submit-flag" onclick="submitFlag()" disabled>Submit Flag</button>
+    </div>
+  </div>
+</div>
+
+<!-- Feedback banner -->
+<div class="feedback-banner" id="feedback-banner">
+  <span class="feedback-close" onclick="closeFeedback()">×</span>
+  <div class="feedback-title" id="feedback-title"></div>
+  <div class="feedback-body"  id="feedback-body"></div>
+  <div id="feedback-mitre"></div>
+</div>
+
+<script>
+  let sessionId       = null
+  let stageId         = null
+  let startTime       = Date.now()
+  let hasActed        = false
+  let selectedReasons = []
+
+  // =========================================================================
+  // Boot — fetch context using a RELATIVE path so it goes through the proxy
+  // =========================================================================
+  // NOTE: Do NOT use "/context" (absolute) — that would go to localhost/context
+  //       instead of localhost/api/containers/{id}/proxy/context
+  fetch("context")
+    .then(r => {
+      if (!r.ok) throw new Error(`Context fetch failed: ${r.status}`)
+      return r.json()
+    })
+    .then(ctx => {
+      sessionId = ctx.session_id
+      stageId   = ctx.stage_id
+      renderEmail(ctx.email, ctx.indicators || [])
+      document.getElementById("user-name").textContent  = "HR Personnel"
+      document.getElementById("user-avatar").textContent = "HR"
+    })
+    .catch(err => {
+      console.error("[SIM] Failed to load context:", err)
+      document.getElementById("reader-body").textContent =
+        "Failed to load email content. Please refresh."
+    })
+
+  // =========================================================================
+  // Feedback via postMessage from SimulationPage (parent window)
+  // This replaces the broken port-3001 WebSocket approach.
+  // SimulationPage receives feedback from Django WS and forwards it here.
+  // =========================================================================
+  window.addEventListener("message", (event) => {
+    // Only handle messages with type "detection_feedback"
+    if (event.data && event.data.type === "detection_feedback") {
+      showFeedback(event.data)
+    }
+  })
+
+  // =========================================================================
+  // Render email
+  // =========================================================================
+  function renderEmail(email, indicators) {
+    if (!email) return
+
+    document.getElementById("list-sender").textContent  = email.sender_name || "Unknown"
+    document.getElementById("list-subject").textContent = email.subject || "(no subject)"
+    document.getElementById("list-preview").textContent = (email.body || "").substring(0, 60) + "..."
+
+    document.getElementById("reader-subject").textContent = email.subject || "(no subject)"
+    document.getElementById("reader-name").textContent    = email.sender_name || "Unknown"
+    document.getElementById("reader-email").textContent   = email.sender_email || ""
+    document.getElementById("reader-avatar").textContent  = (email.sender_name || "?")[0].toUpperCase()
+
+    renderBody(email.body || "")
+
+    if (email.has_attachment) {
+      document.getElementById("attachment-block").style.display = "flex"
+      document.getElementById("attachment-name").textContent    = email.attachment_name || "file.pdf.exe"
+      document.getElementById("attachment-icon").textContent    =
+        (email.attachment_name || "").split(".").pop().toUpperCase().substring(0, 3)
+    }
+
+    buildFlagReasons(indicators)
+  }
+
+  function renderBody(bodyText) {
+    const el = document.getElementById("reader-body")
+    const urlPattern = /(\S+\.(com|net|co|io|org)(\/\S*)?)/g
+    let html = bodyText
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(urlPattern, url =>
+        `<span class="email-link suspicious" onclick="handleLinkClick()" title="Suspicious link">${url}</span>`
+      )
+    el.innerHTML = html
+  }
+
+  function buildFlagReasons(indicators) {
+    const container = document.getElementById("reason-options")
+    container.innerHTML = ""
+    indicators.forEach((indicator, i) => {
+      const div = document.createElement("div")
+      div.className = "reason-option"
+      div.id = `reason-${i}`
+      div.innerHTML = `
+        <input type="checkbox" id="cb-${i}" onchange="toggleReason(${i})" />
+        <div><div class="reason-label">${escapeHtml(indicator)}</div></div>
+      `
+      div.onclick = (e) => {
+        if (e.target.tagName !== "INPUT") {
+          const cb = document.getElementById(`cb-${i}`)
+          cb.checked = !cb.checked
+          toggleReason(i)
+        }
+      }
+      container.appendChild(div)
+    })
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+  }
+
+  // =========================================================================
+  // Telemetry — use RELATIVE path "telemetry" (not "/telemetry")
+  // =========================================================================
+  function sendTelemetry(eventType, element, extra) {
+    const payload = {
+      event_type: eventType,
+      offset_ms:  Date.now() - startTime,
+      element,
+      stage_id:   Number(stageId),
+    }
+    if (extra) Object.assign(payload, extra)
+
+    // Relative path — resolves through the Django proxy correctly
+    fetch("telemetry", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(payload),
+    }).catch(err => console.error("[SIM] Telemetry error:", err))
+  }
+
+  // =========================================================================
+  // Action handlers
+  // =========================================================================
+  function handleReply() {
+    if (hasActed) return; hasActed = true
+    sendTelemetry("click", "btn-reply")
+    disableActions()
+    styleButton("btn-reply", "#fef2f2", "#fca5a5", "#dc2626")
+  }
+
+  function handleForward() {
+    if (hasActed) return; hasActed = true
+    sendTelemetry("click", "btn-forward")
+    disableActions()
+    styleButton("btn-forward", "#fef2f2", "#fca5a5", "#dc2626")
+  }
+
+  function handleDelete() {
+    if (hasActed) return; hasActed = true
+    sendTelemetry("delete", "btn-delete")
+    disableActions()
+    document.getElementById("attack-email-item").style.opacity = "0.4"
+    document.getElementById("attack-email-item").style.textDecoration = "line-through"
+    styleButton("btn-delete", "#fef2f2", "#fca5a5", "#dc2626")
+  }
+
+  function handleLinkClick() {
+    if (hasActed) return; hasActed = true
+    sendTelemetry("click", "phishing-link")
+    disableActions()
+  }
+
+  function handleDownload() {
+    if (hasActed) return; hasActed = true
+    sendTelemetry("download", "attachment-download")
+    disableActions()
+    const el = document.getElementById("attachment-block")
+    el.style.background   = "#fef2f2"
+    el.style.borderColor  = "#fca5a5"
+  }
+
+  function styleButton(id, bg, border, color) {
+    const el = document.getElementById(id)
+    if (!el) return
+    el.style.background   = bg
+    el.style.borderColor  = border
+    el.style.color        = color
+  }
+
+  function disableActions() {
+    ["btn-reply","btn-forward","btn-delete","btn-flag"].forEach(id => {
+      const el = document.getElementById(id)
+      if (el) { el.disabled = true; el.style.opacity = "0.5"; el.style.cursor = "default" }
+    })
+  }
+
+  // =========================================================================
+  // Flag modal
+  // =========================================================================
+  function openFlagModal()  { if (!hasActed) document.getElementById("flag-modal").classList.add("open") }
+  function closeFlagModal() { document.getElementById("flag-modal").classList.remove("open") }
+
+  function toggleReason(index) {
+    const cb     = document.getElementById(`cb-${index}`)
+    const option = document.getElementById(`reason-${index}`)
+    if (cb.checked) { selectedReasons.push(index); option.classList.add("selected") }
+    else            { selectedReasons = selectedReasons.filter(i => i !== index); option.classList.remove("selected") }
+    document.getElementById("btn-submit-flag").disabled = selectedReasons.length === 0
+  }
+
+  function submitFlag() {
+    hasActed = true
+    closeFlagModal()
+    disableActions()
+    sendTelemetry("flag", "btn-flag", { selected_reason_indices: selectedReasons })
+    styleButton("btn-flag", "#f0fdf4", "#86efac", "#166534")
+    document.getElementById("btn-flag").textContent = "🚩 Flagged"
+  }
+
+  // =========================================================================
+  // Feedback display — triggered by postMessage from SimulationPage
+  // =========================================================================
+  function showFeedback(msg) {
+    const banner = document.getElementById("feedback-banner")
+    const title  = document.getElementById("feedback-title")
+    const body   = document.getElementById("feedback-body")
+    const mitre  = document.getElementById("feedback-mitre")
+
+    const detected = msg.detected
+    banner.className = `feedback-banner ${detected ? "detected" : "missed"}`
+    title.className  = `feedback-title  ${detected ? "detected" : "missed"}`
+    title.textContent = msg.result_label || (detected ? "Threat Detected!" : "Threat Missed")
+
+    let text = msg.explanation || ""
+    if (!detected && msg.indicators_missed?.length > 0) {
+      text += "\n\nIndicators you missed:\n" + msg.indicators_missed.map(i => `• ${i}`).join("\n")
+    }
+    if (msg.best_practice) text += `\n\nBest practice: ${msg.best_practice}`
+    body.style.whiteSpace = "pre-line"
+    body.textContent = text
+
+    mitre.innerHTML = msg.mitre_id
+      ? `<span class="mitre-tag">MITRE ${msg.mitre_id}</span>`
+      : ""
+
+    banner.style.display = "block"
+    setTimeout(closeFeedback, 12000)
+  }
+
+  function closeFeedback() {
+    document.getElementById("feedback-banner").style.display = "none"
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener("keydown", (e) => {
+    if (hasActed) return
+    if (e.key === "r" || e.key === "R") handleReply()
+    if (e.key === "f" || e.key === "F") openFlagModal()
+    if (e.key === "d" || e.key === "D") handleDelete()
+  })
+</script>
+</body>
+</html>

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Candidate Screening — Geographic Verification</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #111; }
+
+    .topbar { background: #1a1a2e; color: white; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; }
+    .topbar-title { font-size: 16px; font-weight: 600; }
+    .topbar-sub   { font-size: 12px; color: #93c5fd; margin-top: 2px; }
+    .badge-count  { background: #ef4444; color: white; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+
+    .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 20px; max-width: 1100px; margin: 0 auto; padding-bottom: 80px; }
+
+    /* Cards */
+    .card { background: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; }
+    .card-header { padding: 14px 18px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+    .card-title  { font-size: 14px; font-weight: 600; color: #111; }
+    .card-body   { padding: 18px; }
+
+    .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px; }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: #6b7280; }
+    .info-value { font-weight: 500; color: #111; text-align: right; max-width: 55%; }
+    .mismatch   { color: #dc2626; background: #fef2f2; padding: 1px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; }
+    .ok-value   { color: #166534; }
+
+    /* World map placeholder (SVG) */
+    .map-container { position: relative; background: #f0f9ff; border-radius: 8px; overflow: hidden; height: 180px; margin-bottom: 12px; }
+    .map-svg { width: 100%; height: 100%; }
+    .map-pin { position: absolute; display: flex; flex-direction: column; align-items: center; }
+    .map-pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+    .map-pin-label { font-size: 10px; font-weight: 600; background: rgba(0,0,0,0.7); color: white; padding: 2px 6px; border-radius: 4px; margin-top: 4px; white-space: nowrap; }
+
+    /* Timeline */
+    .timeline { list-style: none; }
+    .timeline-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f5f5f5; }
+    .tl-time  { font-size: 12px; color: #6b7280; min-width: 90px; font-family: monospace; }
+    .tl-event { font-size: 13px; }
+    .tl-flag  { font-size: 11px; color: #dc2626; margin-top: 2px; }
+
+    /* Alert box */
+    .alert-box { background: #fef2f2; border: 1.5px solid #fca5a5; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; }
+    .alert-box-title { font-size: 13px; font-weight: 700; color: #dc2626; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+    .alert-box-body  { font-size: 12px; color: #7f1d1d; line-height: 1.5; }
+    .mismatch-count  { display: inline-block; background: #dc2626; color: white; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 20px; margin-left: 4px; }
+
+    /* Document metadata */
+    .meta-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .meta-table th { text-align: left; color: #6b7280; font-weight: 600; padding: 5px 0; border-bottom: 1px solid #f0f0f0; }
+    .meta-table td { padding: 6px 0; border-bottom: 1px solid #f8f8f8; }
+    .meta-table td.suspicious { color: #dc2626; font-weight: 600; }
+
+    /* Action bar */
+    .action-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e5e7eb; padding: 12px 24px; display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 -4px 16px rgba(0,0,0,0.06); }
+    .btn-advance { padding: 9px 22px; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; color: #166534; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-flag    { padding: 9px 22px; background: #fef2f2; border: 1.5px solid #ef4444; border-radius: 8px; color: #ef4444; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .action-hint { font-size: 12px; color: #6b7280; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: white; border-radius: 12px; padding: 24px; width: 480px; max-width: 90vw; }
+    .modal-title    { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+    .modal-subtitle { font-size: 13px; color: #6b7280; margin-bottom: 20px; line-height: 1.5; }
+    .reason-option { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
+    .reason-option:hover, .reason-option.selected { border-color: #3b82f6; background: #eff6ff; }
+    .reason-label { font-size: 13px; font-weight: 500; color: #374151; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-cancel { flex: 1; padding: 9px; border: 1px solid #e5e7eb; border-radius: 8px; background: white; cursor: pointer; font-size: 13px; }
+    .btn-submit-flag { flex: 2; padding: 9px; border: none; border-radius: 8px; background: #ef4444; color: white; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-submit-flag:disabled { background: #fca5a5; cursor: default; }
+
+    /* Feedback */
+    .feedback-banner { display: none; position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 520px; border-radius: 10px; padding: 14px 18px; z-index: 200; }
+    .feedback-banner.detected { background: #f0fdf4; border: 1.5px solid #86efac; }
+    .feedback-banner.missed   { background: #fef2f2; border: 1.5px solid #fca5a5; }
+    .fb-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .fb-title.detected { color: #166534; }
+    .fb-title.missed   { color: #dc2626; }
+    .fb-body  { font-size: 12px; color: #374151; line-height: 1.5; white-space: pre-line; }
+    .mitre-tag { display: inline-block; margin-top: 6px; background: #f3f4f6; border: 0.5px solid #d1d5db; border-radius: 4px; padding: 2px 8px; font-size: 10px; color: #6b7280; font-family: monospace; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="topbar-title">🌍 Candidate Geographic Verification</div>
+    <div class="topbar-sub">Review all location and timezone signals before advancing</div>
+  </div>
+  <div>
+    <span class="badge-count" id="mismatch-badge">0 mismatches</span>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- Card 1: Claimed vs Detected Location -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📍 Location Verification</span>
+      <span style="font-size:11px;color:#6b7280;">Click rows to inspect</span>
+    </div>
+    <div class="card-body">
+      <div class="alert-box" id="geo-alert" style="display:none">
+        <div class="alert-box-title">⚠ Geographic Inconsistency Detected <span class="mismatch-count" id="mismatch-count">0</span></div>
+        <div class="alert-box-body" id="geo-alert-body"></div>
+      </div>
+
+      <!-- Mini map placeholder -->
+      <div class="map-container" onclick="trackMapInspect()">
+        <svg class="map-svg" viewBox="0 0 400 180" xmlns="http://www.w3.org/2000/svg">
+          <!-- Simple world map silhouette (stylized) -->
+          <rect width="400" height="180" fill="#dbeafe"/>
+          <!-- Americas -->
+          <ellipse cx="100" cy="80" rx="55" ry="55" fill="#93c5fd" opacity="0.6"/>
+          <!-- Europe/Africa -->
+          <ellipse cx="200" cy="75" rx="35" ry="60" fill="#93c5fd" opacity="0.6"/>
+          <!-- Asia -->
+          <ellipse cx="300" cy="70" rx="65" ry="50" fill="#93c5fd" opacity="0.6"/>
+          <!-- Ocean label -->
+          <text x="200" y="160" text-anchor="middle" font-size="9" fill="#60a5fa" font-weight="600">Click to inspect geographic data</text>
+
+          <!-- Claimed location pin (SF) -->
+          <circle cx="80" cy="85" r="7" fill="#3b82f6" stroke="white" stroke-width="2"/>
+          <text x="80" y="105" text-anchor="middle" font-size="8" fill="#1d4ed8" font-weight="700">San Francisco</text>
+          <text x="80" y="113" text-anchor="middle" font-size="7" fill="#3b82f6">Claimed</text>
+
+          <!-- Detected IP location pin (Shanghai) -->
+          <circle cx="315" cy="75" r="7" fill="#ef4444" stroke="white" stroke-width="2"/>
+          <text x="315" y="95" text-anchor="middle" font-size="8" fill="#dc2626" font-weight="700">Shanghai</text>
+          <text x="315" y="103" text-anchor="middle" font-size="7" fill="#ef4444">IP Detected ⚠</text>
+
+          <!-- Connection line -->
+          <line x1="87" y1="85" x2="308" y2="75" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.8"/>
+        </svg>
+      </div>
+
+      <div class="info-row" onclick="trackRowClick('claimed-location')">
+        <span class="info-label">Claimed location</span>
+        <span class="info-value ok-value" id="disp-claimed">—</span>
+      </div>
+      <div class="info-row" onclick="trackRowClick('ip-timezone')">
+        <span class="info-label">IP / System timezone</span>
+        <span class="info-value" id="disp-ip-tz">—</span>
+      </div>
+      <div class="info-row" onclick="trackRowClick('ip-country')">
+        <span class="info-label">IP country</span>
+        <span class="info-value" id="disp-ip-country">—</span>
+      </div>
+      <div class="info-row" onclick="trackRowClick('phone-country')">
+        <span class="info-label">Phone country code</span>
+        <span class="info-value" id="disp-phone">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 2: Timezone / Availability Analysis -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">🕐 Timezone Consistency Check</span>
+    </div>
+    <div class="card-body">
+      <div class="info-row" onclick="trackRowClick('claimed-timezone')">
+        <span class="info-label">Claimed timezone</span>
+        <span class="info-value ok-value" id="disp-claimed-tz">—</span>
+      </div>
+      <div class="info-row" onclick="trackRowClick('availability')">
+        <span class="info-label">Stated availability</span>
+        <span class="info-value" id="disp-availability">—</span>
+      </div>
+      <div class="info-row" onclick="trackRowClick('availability-utc')">
+        <span class="info-label">Equivalent UTC window</span>
+        <span class="info-value" id="disp-avail-utc">—</span>
+      </div>
+
+      <div style="margin-top:14px;">
+        <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;">Activity Timeline (Past 24h)</div>
+        <ul class="timeline" id="activity-timeline">
+          <li class="timeline-item"><span class="tl-time">Loading...</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 3: Document Metadata -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📄 Resume Document Metadata</span>
+      <span style="font-size:11px;color:#9ca3af;" onclick="trackRowClick('metadata-panel')" style="cursor:pointer">Inspect ↗</span>
+    </div>
+    <div class="card-body">
+      <table class="meta-table">
+        <thead>
+          <tr><th>Property</th><th>Value</th><th>Expected</th></tr>
+        </thead>
+        <tbody id="meta-tbody">
+          <tr><td colspan="3" style="color:#9ca3af;font-style:italic">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Card 4: Risk Assessment Summary -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">🔎 Risk Signal Summary</span>
+    </div>
+    <div class="card-body">
+      <div id="risk-summary" style="font-size:13px;color:#374151;line-height:1.8;">Loading...</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Action Bar -->
+<div class="action-bar">
+  <span class="action-hint">Review all signals before deciding</span>
+  <button class="btn-advance" onclick="handleAdvance()">✓ Advance Candidate</button>
+  <button class="btn-flag"    onclick="openFlagModal()">🚩 Flag Inconsistency</button>
+</div>
+
+<!-- Flag Modal -->
+<div class="modal-overlay" id="flag-modal">
+  <div class="modal">
+    <div class="modal-title">Flag Geographic Inconsistency</div>
+    <div class="modal-subtitle">Select the specific signal(s) you identified as suspicious. Full marks for pinpointing the key mismatch.</div>
+    <div id="reason-options"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeFlagModal()">Cancel</button>
+      <button class="btn-submit-flag" id="btn-submit" onclick="submitFlag()" disabled>Flag Candidate</button>
+    </div>
+  </div>
+</div>
+
+<!-- Feedback Banner -->
+<div class="feedback-banner" id="feedback-banner">
+  <span onclick="closeFeedback()" style="float:right;cursor:pointer;color:#9ca3af;font-size:16px;">×</span>
+  <div class="fb-title" id="fb-title"></div>
+  <div class="fb-body"  id="fb-body"></div>
+  <div id="fb-mitre"></div>
+</div>
+
+<script>
+  let sessionId = null, stageId = null
+  let startTime = Date.now(), hasActed = false, selectedReasons = []
+
+  fetch("context").then(r => r.json()).then(ctx => {
+    sessionId = ctx.session_id; stageId = ctx.stage_id
+    const g = ctx.geo
+    if (!g) return
+
+    // Badge
+    document.getElementById("mismatch-badge").textContent = `${g.mismatch_count || 0} mismatches`
+
+    // Location card
+    document.getElementById("disp-claimed").textContent    = g.claimed_location || "—"
+    document.getElementById("disp-ip-tz").innerHTML        = `<span class="mismatch">${escapeHtml(g.ip_timezone || "—")}</span>`
+    document.getElementById("disp-ip-country").innerHTML   = `<span class="mismatch">${escapeHtml(g.ip_country || "—")}</span>`
+    document.getElementById("disp-phone").innerHTML        = `<span class="mismatch">${escapeHtml(g.phone_country_code || "—")} (expected +1)</span>`
+
+    // Alert box
+    if (g.mismatch_count > 0) {
+      document.getElementById("geo-alert").style.display = "block"
+      document.getElementById("mismatch-count").textContent = g.mismatch_count
+      document.getElementById("geo-alert-body").textContent =
+        `Candidate claims ${g.claimed_location} but ${g.mismatch_count} signals indicate a different geographic origin.`
+    }
+
+    // Timezone card
+    document.getElementById("disp-claimed-tz").textContent  = g.claimed_timezone || "—"
+    document.getElementById("disp-availability").textContent = g.availability || "—"
+    document.getElementById("disp-avail-utc").innerHTML      = `<span class="mismatch">${escapeHtml(g.availability_utc || "—")}</span>`
+
+    // Activity timeline
+    const tl = document.getElementById("activity-timeline")
+    tl.innerHTML = ""
+    const events = [
+      { time: g.application_submitted, event: "Application submitted",       flag: `⚠ Submitted at ${g.application_submitted} in claimed timezone (unusually late/early)` },
+      { time: g.last_linkedin_active,  event: "Last LinkedIn activity",      flag: `⚠ ${g.last_linkedin_active} — inconsistent with PST business hours` },
+      { time: "Now",                   event: "Geographic check requested",  flag: null },
+    ]
+    events.forEach(ev => {
+      const li = document.createElement("li")
+      li.className = "timeline-item"
+      li.innerHTML = `
+        <span class="tl-time">${escapeHtml(ev.time || "—")}</span>
+        <div>
+          <div class="tl-event">${escapeHtml(ev.event)}</div>
+          ${ev.flag ? `<div class="tl-flag">${escapeHtml(ev.flag)}</div>` : ""}
+        </div>
+      `
+      tl.appendChild(li)
+    })
+
+    // Metadata table
+    const tbody = document.getElementById("meta-tbody")
+    tbody.innerHTML = ""
+    const metaRows = [
+      { prop: "Document locale",       value: g.resume_created_locale,       expected: "en-US",     suspicious: true },
+      { prop: "Author timezone offset",value: "UTC+8",                       expected: "UTC-8",     suspicious: true },
+      { prop: "Last saved location",   value: g.ip_country || "CN",         expected: "US",        suspicious: true },
+      { prop: "File format",           value: "DOCX 2019",                   expected: "DOCX",      suspicious: false },
+    ]
+    metaRows.forEach(r => {
+      const tr = document.createElement("tr")
+      tr.innerHTML = `
+        <td>${escapeHtml(r.prop)}</td>
+        <td class="${r.suspicious ? "suspicious" : ""}">${escapeHtml(r.value)}</td>
+        <td style="color:#6b7280">${escapeHtml(r.expected)}</td>
+      `
+      tr.onclick = () => trackRowClick("document-metadata-" + r.prop.replace(/\s/g, "-"))
+      tbody.appendChild(tr)
+    })
+
+    // Risk summary
+    document.getElementById("risk-summary").innerHTML = `
+      <strong style="color:#dc2626">⚠ ${g.mismatch_count} Geographic Red Flags Detected:</strong><br/><br/>
+      1. IP timezone (UTC+8) contradicts claimed PST location<br/>
+      2. Resume document locale set to <code>zh-CN</code><br/>
+      3. Phone country code (+${(g.phone_country_code || "+86").replace("+","")}) does not match US claim<br/>
+      4. Activity timestamps inconsistent with claimed business hours<br/><br/>
+      <span style="color:#6b7280;font-size:12px;">In a real scenario, this pattern is associated with MITRE T1078 (Valid Accounts) — adversaries who use stolen or fabricated identities to gain insider access.</span>
+    `
+
+    buildFlagReasons(ctx.indicators || [])
+    sendTelemetry("view", "geo-verification-loaded")
+  }).catch(err => console.error("[GEO] Context load error:", err))
+
+  window.addEventListener("message", (event) => {
+    if (event.data?.type === "detection_feedback") showFeedback(event.data)
+  })
+
+  function trackMapInspect()     { sendTelemetry("view", "geo-map") }
+  function trackRowClick(el)     { sendTelemetry("view", el) }
+
+  function handleAdvance() {
+    if (hasActed) return; hasActed = true
+    sendTelemetry("click", "btn-advance-candidate")
+    document.getElementById("btn-flag").disabled = true
+  }
+
+  function sendTelemetry(eventType, element, extra) {
+    const p = { event_type: eventType, offset_ms: Date.now() - startTime, element, stage_id: Number(stageId), selected_reason_indices: [] }
+    if (extra) Object.assign(p, extra)
+    fetch("telemetry", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) }).catch(() => {})
+  }
+
+  function buildFlagReasons(indicators) {
+    const c = document.getElementById("reason-options"); c.innerHTML = ""
+    indicators.forEach((ind, i) => {
+      const div = document.createElement("div"); div.className = "reason-option"; div.id = `reason-${i}`
+      div.innerHTML = `<input type="checkbox" id="cb-${i}" onchange="toggleReason(${i})" /><div class="reason-label">${escapeHtml(ind)}</div>`
+      div.onclick = (e) => { if (e.target.tagName !== "INPUT") { const cb = document.getElementById(`cb-${i}`); cb.checked = !cb.checked; toggleReason(i) } }
+      c.appendChild(div)
+    })
+  }
+
+  function escapeHtml(str) { return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;") }
+  function openFlagModal()  { if (!hasActed) document.getElementById("flag-modal").classList.add("open") }
+  function closeFlagModal() { document.getElementById("flag-modal").classList.remove("open") }
+
+  function toggleReason(i) {
+    const cb = document.getElementById(`cb-${i}`), opt = document.getElementById(`reason-${i}`)
+    if (cb.checked) { selectedReasons.push(i); opt.classList.add("selected") } else { selectedReasons = selectedReasons.filter(x => x !== i); opt.classList.remove("selected") }
+    document.getElementById("btn-submit").disabled = selectedReasons.length === 0
+  }
+
+  function submitFlag() {
+    hasActed = true; closeFlagModal()
+    sendTelemetry("flag", "geo-inconsistency-flag", { selected_reason_indices: selectedReasons })
+    document.querySelector(".btn-flag").textContent = "🚩 Flagged"
+    document.querySelector(".btn-flag").style.background = "#f0fdf4"
+    document.querySelector(".btn-flag").style.borderColor = "#86efac"
+    document.querySelector(".btn-flag").style.color = "#166534"
+  }
+
+  function showFeedback(msg) {
+    const det = msg.detected
+    const b = document.getElementById("feedback-banner")
+    b.className = `feedback-banner ${det ? "detected" : "missed"}`
+    const t = document.getElementById("fb-title")
+    t.className = `fb-title ${det ? "detected" : "missed"}`
+    t.textContent = msg.result_label || ""
+    let text = msg.explanation || ""
+    if (!det && msg.indicators_missed?.length) text += "\n\nMissed signals:\n" + msg.indicators_missed.map(i => `• ${i}`).join("\n")
+    if (msg.best_practice) text += `\n\nBest practice: ${msg.best_practice}`
+    document.getElementById("fb-body").textContent = text
+    document.getElementById("fb-mitre").innerHTML = msg.mitre_id ? `<span class="mitre-tag">MITRE ${msg.mitre_id}</span>` : ""
+    b.style.display = "block"
+    setTimeout(closeFeedback, 14000)
+  }
+  function closeFeedback() { document.getElementById("feedback-banner").style.display = "none" }
+</script>
+</body>
+</html>

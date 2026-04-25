@@ -1,0 +1,13 @@
+{
+  "name": "rasp-sim-phishing",
+  "version": "1.0.0",
+  "description": "RASP phishing simulation container",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
+  }
+}

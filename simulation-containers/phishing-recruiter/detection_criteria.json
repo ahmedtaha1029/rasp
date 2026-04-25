@@ -1,0 +1,24 @@
+{
+  "_comment": "Paste this JSON into the detection_criteria field when creating the AttackVector for the phishing stage via Django admin or API.",
+
+  "detection_elements": ["btn-flag"],
+  "flag_actions": ["flag"],
+  "hesitation_threshold_ms": 30000,
+
+  "indicator_descriptions": [
+    "Spoofed domain: 'linkedln.com' (note the 'n' replacing 'i') instead of 'linkedin.com'",
+    "Urgency manipulation: '48-hour deadline' and URGENT badge pressure tactics (T1566)",
+    "Suspicious file extension: 'JobOffer_TechCorp.pdf.exe' — double extension malware delivery (T1204)",
+    "Mismatched sender domain: sarah.reynolds@techcorp-global.net does not match 'TechCorp Global'",
+    "Unrealistic salary promise: $180,000–$220,000 with no interview process"
+  ],
+
+  "success_message": "Correct — you identified this as a phishing attempt. You spotted the attack before engaging with the attacker.",
+
+  "miss_explanation": "This was a phishing message. The link used a lookalike domain (linkedln.com vs linkedin.com), the attachment had a double extension (.pdf.exe) which is a common malware delivery technique, and the message used urgency manipulation to pressure you into acting quickly.",
+
+  "best_practice": "Always verify the sender's domain, hover over links to inspect the actual URL before clicking, and never download attachments from unsolicited recruiters without verifying their identity through an official channel.",
+
+  "mitre_id": "T1566",
+  "mitre_description": "Phishing — adversaries send phishing messages to gain access to victim systems"
+}

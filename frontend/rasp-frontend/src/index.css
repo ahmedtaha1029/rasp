@@ -1,0 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    @apply bg-surface text-text-primary font-sans antialiased;
+    min-height: 100vh;
+  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-surface-1; }
+  ::-webkit-scrollbar-thumb { @apply bg-border-light rounded-full; }
+}
+
+@layer components {
+  .card { @apply bg-surface-1 rounded-xl border border-border shadow-card; }
+  .card-elevated { @apply bg-surface-2 rounded-xl border border-border shadow-card; }
+  .input {
+    @apply w-full bg-surface-3 border border-border rounded-lg px-3 py-2.5
+           text-text-primary placeholder-text-muted
+           focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary
+           transition-colors duration-200;
+  }
+  .label {
+    @apply block text-xs font-medium text-text-secondary uppercase tracking-wider mb-1.5;
+  }
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-2xs font-mono font-bold uppercase tracking-wider;
+  }
+  .badge-primary   { @apply badge bg-primary/20 text-primary; }
+  .badge-accent    { @apply badge bg-accent/20 text-accent; }
+  .badge-success   { @apply badge bg-success/20 text-success; }
+  .badge-danger    { @apply badge bg-danger/20 text-danger; }
+  .badge-warning   { @apply badge bg-warning/20 text-warning; }
+  .badge-muted     { @apply badge bg-surface-3 text-text-secondary; }
+  .mitre-tag {
+    @apply font-mono text-2xs bg-surface-3 border border-border text-accent px-1.5 py-0.5 rounded;
+  }
+  .live-dot { @apply inline-block w-2 h-2 rounded-full bg-success animate-pulse-slow; }
+  .section-title {
+    @apply text-xs font-mono font-bold uppercase tracking-widest text-text-muted mb-3;
+  }
+}
+
+.sim-frame {
+  border: 1px solid theme('colors.border.DEFAULT');
+  border-radius: 12px;
+  overflow: hidden;
+  background: theme('colors.surface.1');
+}

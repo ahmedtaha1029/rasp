@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apply Now — TalentHub Careers</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f3f4f6; min-height: 100vh; }
+
+    /* Browser chrome simulation */
+    .browser-bar {
+      background: #1f2937; height: 40px; display: flex; align-items: center;
+      padding: 0 12px; gap: 8px;
+    }
+    .browser-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .browser-dot.red { background: #ef4444; }
+    .browser-dot.yellow { background: #f59e0b; }
+    .browser-dot.green { background: #10b981; }
+    .browser-url {
+      flex: 1; background: #374151; border-radius: 6px; padding: 4px 12px;
+      color: #d1d5db; font-size: 12px; font-family: monospace; max-width: 500px; margin: 0 auto;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .no-https { color: #ef4444; font-size: 11px; font-weight: 600; }
+
+    .page { max-width: 520px; margin: 40px auto; padding: 0 16px; }
+
+    .portal-header {
+      background: white; border-radius: 12px 12px 0 0; padding: 24px;
+      border-bottom: 2px solid #f3f4f6; text-align: center;
+    }
+    .portal-logo {
+      width: 60px; height: 60px; background: #1d4ed8; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 24px; font-weight: 800; margin: 0 auto 12px;
+    }
+    .portal-company { font-size: 20px; font-weight: 700; color: #111; }
+    .portal-domain { font-size: 12px; color: #6b7280; font-family: monospace; margin-top: 4px; }
+    .portal-tagline { font-size: 13px; color: #374151; margin-top: 6px; }
+
+    .form-card {
+      background: white; border-radius: 0 0 12px 12px;
+      padding: 28px; box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+    .form-title { font-size: 16px; font-weight: 600; color: #111; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+    .required-badge {
+      display: inline-block; background: #fef2f2; color: #dc2626;
+      font-size: 10px; padding: 1px 5px; border-radius: 3px; margin-left: 4px;
+    }
+    input[type=text], input[type=email], input[type=tel], input[type=file] {
+      width: 100%; padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px;
+      font-size: 13px; color: #111; transition: border-color 0.15s;
+    }
+    input:focus { outline: none; border-color: #3b82f6; }
+    .sensitive-field { border-color: #fca5a5; background: #fff5f5; }
+    .sensitive-warning {
+      font-size: 11px; color: #dc2626; margin-top: 4px; display: none;
+    }
+    .separator { border: none; border-top: 1px solid #f0f0f0; margin: 20px 0; }
+    .pii-section-title {
+      font-size: 12px; font-weight: 700; color: #dc2626; text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 14px;
+    }
+    .submit-btn {
+      width: 100%; padding: 11px; background: #1d4ed8; color: white;
+      border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+      cursor: pointer; margin-top: 8px; transition: background 0.15s;
+    }
+    .submit-btn:hover { background: #1e40af; }
+
+    .flag-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; background: white;
+      border-top: 1px solid #e5e7eb; padding: 12px 16px;
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
+    }
+    .flag-btn {
+      display: flex; align-items: center; gap: 6px; padding: 8px 20px;
+      background: #fef2f2; border: 1.5px solid #ef4444; border-radius: 8px;
+      color: #ef4444; font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .flag-btn:hover { background: #fee2e2; }
+
+    /* Flag modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: white; border-radius: 12px; padding: 24px; width: 460px; max-width: 90vw; }
+    .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+    .modal-subtitle { font-size: 13px; color: #6b7280; margin-bottom: 20px; line-height: 1.5; }
+    .reason-option { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; }
+    .reason-option:hover { border-color: #93c5fd; background: #eff6ff; }
+    .reason-option.selected { border-color: #3b82f6; background: #eff6ff; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-cancel { flex: 1; padding: 9px; border: 1px solid #e5e7eb; border-radius: 8px; background: white; cursor: pointer; font-size: 13px; }
+    .btn-submit-flag { flex: 2; padding: 9px; border: none; border-radius: 8px; background: #ef4444; color: white; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-submit-flag:disabled { background: #fca5a5; cursor: default; }
+
+    /* Feedback */
+    .feedback-banner { display: none; position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 520px; border-radius: 10px; padding: 14px 18px; z-index: 200; }
+    .feedback-banner.detected { background: #f0fdf4; border: 1.5px solid #86efac; }
+    .feedback-banner.missed   { background: #fef2f2; border: 1.5px solid #fca5a5; }
+    .feedback-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .feedback-title.detected { color: #166534; }
+    .feedback-title.missed   { color: #dc2626; }
+    .feedback-body { font-size: 12px; color: #374151; line-height: 1.5; }
+    .mitre-tag { display: inline-block; margin-top: 6px; background: #f3f4f6; border: 0.5px solid #d1d5db; border-radius: 4px; padding: 2px 8px; font-size: 10px; color: #6b7280; font-family: monospace; }
+  </style>
+</head>
+<body>
+
+<!-- Browser chrome with spoofed/missing HTTPS -->
+<div class="browser-bar">
+  <div class="browser-dot red"></div>
+  <div class="browser-dot yellow"></div>
+  <div class="browser-dot green"></div>
+  <div class="browser-url">
+    <span class="no-https" id="https-indicator">⚠ Not Secure</span>
+    <span id="url-display">loading...</span>
+  </div>
+</div>
+
+<div class="page">
+  <div class="portal-header">
+    <div class="portal-logo" id="portal-logo">T</div>
+    <div class="portal-company" id="portal-company">Loading...</div>
+    <div class="portal-domain" id="portal-domain">Loading...</div>
+    <div class="portal-tagline">Complete your application below</div>
+  </div>
+
+  <div class="form-card">
+    <div class="form-title">Application Form — Step 1 of 1</div>
+
+    <!-- Standard fields -->
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" id="field-name" placeholder="Your full name" onfocus="trackFocus('field-name')" />
+    </div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" id="field-email" placeholder="your@email.com" onfocus="trackFocus('field-email')" />
+    </div>
+    <div class="form-group">
+      <label>Phone Number</label>
+      <input type="tel" id="field-phone" placeholder="+1 (555) 000-0000" onfocus="trackFocus('field-phone')" />
+    </div>
+    <div class="form-group">
+      <label>Resume / CV <span class="required-badge">Required</span></label>
+      <input type="file" id="field-resume" onchange="trackFocus('field-resume')" />
+    </div>
+
+    <hr class="separator" />
+
+    <!-- Excessive PII section — suspicious at application stage -->
+    <div class="pii-section-title">⚠ Additional Verification Required</div>
+
+    <div class="form-group" id="group-ssn">
+      <label>Social Security Number <span class="required-badge">Required</span></label>
+      <input type="text" class="sensitive-field" id="field-ssn" placeholder="XXX-XX-XXXX"
+             onfocus="trackPIIFocus('field-ssn', 'ssn')" oninput="this.value=''" />
+      <div class="sensitive-warning" id="warn-ssn">⚠ Legitimate employers don't ask for SSN at application stage</div>
+    </div>
+    <div class="form-group" id="group-bank">
+      <label>Bank Account Number <span class="required-badge">Required</span></label>
+      <input type="text" class="sensitive-field" id="field-bank" placeholder="For direct deposit setup"
+             onfocus="trackPIIFocus('field-bank', 'bank_account')" oninput="this.value=''" />
+      <div class="sensitive-warning" id="warn-bank">⚠ Bank details should never be requested before hiring</div>
+    </div>
+    <div class="form-group" id="group-passport">
+      <label>Passport Scan <span class="required-badge">Required</span></label>
+      <input type="file" class="sensitive-field" id="field-passport"
+             onchange="trackPIIFocus('field-passport', 'passport_scan')" />
+      <div class="sensitive-warning" id="warn-passport">⚠ Passport copies should only be requested post-hiring</div>
+    </div>
+
+    <button class="submit-btn" onclick="handleSubmit()">Submit Application</button>
+  </div>
+</div>
+
+<div class="flag-bar">
+  <span style="font-size:13px;color:#6b7280;">Something suspicious?</span>
+  <button class="flag-btn" id="btn-flag" onclick="openFlagModal()">🚩 Flag this Portal</button>
+</div>
+
+<!-- Flag modal -->
+<div class="modal-overlay" id="flag-modal">
+  <div class="modal">
+    <div class="modal-title">Flag this Portal as Suspicious</div>
+    <div class="modal-subtitle">Select the red flag(s) you identified. Full marks for the most specific answer.</div>
+    <div id="reason-options"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeFlagModal()">Cancel</button>
+      <button class="btn-submit-flag" id="btn-submit" onclick="submitFlag()" disabled>Submit Flag</button>
+    </div>
+  </div>
+</div>
+
+<!-- Feedback banner -->
+<div class="feedback-banner" id="feedback-banner">
+  <span onclick="closeFeedback()" style="float:right;cursor:pointer;color:#9ca3af;">×</span>
+  <div class="feedback-title" id="feedback-title"></div>
+  <div class="feedback-body"  id="feedback-body"></div>
+  <div id="feedback-mitre"></div>
+</div>
+
+<script>
+  let sessionId = null
+  let stageId   = null
+  let startTime = Date.now()
+  let hasActed  = false
+  let selectedReasons = []
+
+  // Boot — load portal context
+  fetch("context")
+    .then(r => r.json())
+    .then(ctx => {
+      sessionId = ctx.session_id
+      stageId   = ctx.stage_id
+      const p   = ctx.portal
+
+      document.getElementById("portal-company").textContent = p.company_name || "TalentHub"
+      document.getElementById("portal-logo").textContent    = (p.company_name || "T")[0].toUpperCase()
+      document.getElementById("portal-domain").textContent  = p.spoofed_domain || ""
+      document.getElementById("url-display").textContent    = p.spoofed_domain || ""
+
+      // Show/hide HTTPS warning based on portal config
+      if (p.has_https) {
+        document.getElementById("https-indicator").style.display = "none"
+      }
+
+      // Hide PII fields if not configured
+      if (!p.excessive_pii || !(p.pii_fields || []).includes("ssn"))      document.getElementById("group-ssn").style.display = "none"
+      if (!p.excessive_pii || !(p.pii_fields || []).includes("bank_account")) document.getElementById("group-bank").style.display = "none"
+      if (!p.excessive_pii || !(p.pii_fields || []).includes("passport_scan")) document.getElementById("group-passport").style.display = "none"
+
+      buildFlagReasons(ctx.indicators || [])
+    })
+    .catch(err => console.error("[CRED] Context load failed:", err))
+
+  // Listen for feedback from SimulationPage (postMessage)
+  window.addEventListener("message", (event) => {
+    if (event.data && event.data.type === "detection_feedback") showFeedback(event.data)
+  })
+
+  function trackFocus(element) {
+    sendTelemetry("view", element)
+  }
+
+  function trackPIIFocus(element, fieldType) {
+    // Show a subtle warning hint for the user
+    const warnEl = document.getElementById("warn-" + fieldType.replace("_", "-").split("_")[0])
+    if (warnEl) warnEl.style.display = "block"
+    sendTelemetry("view", "pii-field-" + fieldType)
+  }
+
+  function handleSubmit() {
+    if (hasActed) return
+    hasActed = true
+    // BR-07: never send any actual form values — only the submit event
+    sendTelemetry("submit", "application-form-submit")
+    document.getElementById("btn-flag").disabled = true
+  }
+
+  function sendTelemetry(eventType, element, extra) {
+    const payload = {
+      event_type: eventType,
+      offset_ms:  Date.now() - startTime,
+      element,
+      stage_id:   Number(stageId),
+      selected_reason_indices: [],
+    }
+    if (extra) Object.assign(payload, extra)
+    fetch("telemetry", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+      .catch(err => console.error("[CRED] Telemetry error:", err))
+  }
+
+  function buildFlagReasons(indicators) {
+    const c = document.getElementById("reason-options")
+    c.innerHTML = ""
+    indicators.forEach((indicator, i) => {
+      const div = document.createElement("div")
+      div.className = "reason-option"
+      div.id = `reason-${i}`
+      div.innerHTML = `<input type="checkbox" id="cb-${i}" onchange="toggleReason(${i})" /><div style="font-size:13px;font-weight:500;color:#374151">${escapeHtml(indicator)}</div>`
+      div.onclick = (e) => { if (e.target.tagName !== "INPUT") { const cb = document.getElementById(`cb-${i}`); cb.checked = !cb.checked; toggleReason(i) } }
+      c.appendChild(div)
+    })
+  }
+
+  function escapeHtml(str) { return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;") }
+
+  function openFlagModal()  { if (!hasActed) document.getElementById("flag-modal").classList.add("open") }
+  function closeFlagModal() { document.getElementById("flag-modal").classList.remove("open") }
+
+  function toggleReason(index) {
+    const cb = document.getElementById(`cb-${index}`)
+    const opt = document.getElementById(`reason-${index}`)
+    if (cb.checked) { selectedReasons.push(index); opt.classList.add("selected") }
+    else { selectedReasons = selectedReasons.filter(i => i !== index); opt.classList.remove("selected") }
+    document.getElementById("btn-submit").disabled = selectedReasons.length === 0
+  }
+
+  function submitFlag() {
+    hasActed = true
+    closeFlagModal()
+    sendTelemetry("flag", "portal-flag", { selected_reason_indices: selectedReasons })
+    document.getElementById("btn-flag").textContent = "🚩 Flagged"
+    document.getElementById("btn-flag").style.background = "#f0fdf4"
+    document.getElementById("btn-flag").style.borderColor = "#86efac"
+    document.getElementById("btn-flag").style.color = "#166534"
+    document.getElementById("btn-flag").disabled = true
+  }
+
+  function showFeedback(msg) {
+    const banner = document.getElementById("feedback-banner")
+    const title  = document.getElementById("feedback-title")
+    const body   = document.getElementById("feedback-body")
+    const mitre  = document.getElementById("feedback-mitre")
+    const det    = msg.detected
+    banner.className = `feedback-banner ${det ? "detected" : "missed"}`
+    title.className  = `feedback-title ${det ? "detected" : "missed"}`
+    title.textContent = msg.result_label || (det ? "Threat Detected!" : "Threat Missed")
+    let text = msg.explanation || ""
+    if (!det && msg.indicators_missed?.length > 0) text += "\n\nIndicators missed:\n" + msg.indicators_missed.map(i => `• ${i}`).join("\n")
+    if (msg.best_practice) text += `\n\nBest practice: ${msg.best_practice}`
+    body.style.whiteSpace = "pre-line"
+    body.textContent = text
+    mitre.innerHTML = msg.mitre_id ? `<span class="mitre-tag">MITRE ${msg.mitre_id}</span>` : ""
+    banner.style.display = "block"
+    setTimeout(closeFeedback, 12000)
+  }
+
+  function closeFeedback() { document.getElementById("feedback-banner").style.display = "none" }
+</script>
+</body>
+</html>
