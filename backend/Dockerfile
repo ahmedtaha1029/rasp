@@ -53,5 +53,9 @@ USER rasp
 
 EXPOSE 8000
 
+RUN useradd -m -u 1001 appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
 # Default command — overridden in docker-compose.yml per service
 CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "rasp_backend.asgi:application"]
