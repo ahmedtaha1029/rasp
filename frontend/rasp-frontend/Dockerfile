@@ -12,7 +12,7 @@ COPY . .
 RUN npm run build          # outputs to /app/dist
 
 # ── Stage 2: serve ───────────────────────────────────────────────────────────
-FROM nginx:1.25-alpine AS runner
+FROM nginx:1.27-alpine AS runner
 
 # Remove default nginx page
 RUN rm -rf /usr/share/nginx/html/*
