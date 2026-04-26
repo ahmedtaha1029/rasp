@@ -14,6 +14,8 @@ RUN npm run build          # outputs to /app/dist
 # ── Stage 2: serve ───────────────────────────────────────────────────────────
 FROM nginx:1.27-alpine AS runner
 
+RUN apk upgrade --no-cache
+
 # Remove default nginx page
 RUN rm -rf /usr/share/nginx/html/*
 
