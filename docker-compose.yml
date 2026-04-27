@@ -49,7 +49,7 @@ services:
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
-             daphne -b 0.0.0.0 -p 8000 rasp_backend.asgi:application"
+             daphne -u 4 -b 0.0.0.0 -p 8000 rasp_backend.asgi:application"
     env_file:
       - .env
     environment:
@@ -132,7 +132,7 @@ services:
       - backend
 
   nginx:
-    image: nginx:1.25-alpine
+    image: nginx:1.27-alpine
     container_name: rasp_nginx
     restart: unless-stopped
     ports:
