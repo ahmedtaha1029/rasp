@@ -1,30 +1,4 @@
 // src/pages/admin/AttackVectorBuilder.jsx
-//
-// Attack vector builder using the pre-built template pool.
-// Flow: Pick template → Customize fields → Save
-//
-// Props:
-//   stageId   — the stage this vector belongs to
-//   vectorId  — if editing an existing vector (optional)
-//   onSaved   — callback after successful save
-//   onCancel  — callback to close without saving
-//
-// Fix log:
-//   [Fix #1] template.detection_criteria was accessed without guarding against
-//            undefined, crashing TemplatePicker and CustomizeForm when any
-//            template entry is missing that field. Added optional chaining
-//            throughout (?.mitre_id, ?.indicators, ?.length, etc.).
-//
-//   [Fix #2] vector_type was set to template.category, which uses UI-only
-//            labels (e.g. "extraction", "attachment", "impersonation") that
-//            don't match Django's VectorType enum choices. Added
-//            CATEGORY_TO_VECTOR_TYPE mapping as a safety net, and prefer
-//            template.vector_type (the explicit field added to every template).
-//
-//   [Fix #3] The advanced multi-vector template has no `email` field, so
-//            initialising CustomizeForm state from template.email crashed.
-//            TemplatePicker now detects multiVector:true templates and routes
-//            them to a dedicated notice instead of CustomizeForm.
 
 import { useState } from "react"
 import { scenariosApi } from "../../api/index"
@@ -35,15 +9,6 @@ import {
   VECTOR_TYPE_TO_IMAGE,
 } from "../../constants/attackTemplates"
 
-// ---------------------------------------------------------------------------
-// Safety-net mapping: UI category id → Django AttackVector.VectorType value.
-//
-// Django accepts exactly: phishing_link | malicious_file | credential_form
-//                         fake_identity | geographic     | urgency
-//
-// This map is consulted only when template.vector_type is absent or unset.
-// Now that every template carries vector_type, this is purely defensive.
-// ---------------------------------------------------------------------------
 const CATEGORY_TO_VECTOR_TYPE = {
   // Pass-throughs (already valid backend values)
   phishing_link: "phishing_link",
@@ -62,10 +27,6 @@ const CATEGORY_TO_VECTOR_TYPE = {
   geo: "geographic",
 }
 
-/**
- * Resolve the correct Django VectorType string for a template.
- * Priority: template.vector_type → CATEGORY_TO_VECTOR_TYPE[category] → raw category
- */
 function resolveVectorType(template) {
   if (template.vector_type && CATEGORY_TO_VECTOR_TYPE[template.vector_type]) {
     return template.vector_type
@@ -249,27 +210,35 @@ function CustomizeForm({ template, onBack, onSave, saving, apiError }) {
   )
 
   const handleSave = () => {
+    const dc = template.detection_criteria ?? {}
     const vectorData = {
       vector_type: resolveVectorType(template),
-      mitre_id: template.detection_criteria?.mitre_id ?? "",
+      mitre_id: dc.mitre_id ?? "",
       detection_criteria: {
+        // Engine scoring keys — passed through directly from the template
+        passing_conditions:    dc.passing_conditions    ?? [],
+        fail_conditions:       dc.fail_conditions       ?? [],
+        partial_credit_events: dc.partial_credit_events ?? [],
+        time_pressure_ms:      timePressure * 1000,
+        // Frontend feedback keys — passed through from the template
+        indicators:       dc.indicators       ?? [],
+        best_practice:    dc.best_practice    ?? "",
+        mitre_id:         dc.mitre_id         ?? "",
+        mitre_description: dc.mitre_description ?? "",
+        // Email content — editable by the admin in the form
         email: {
-          sender_name: senderName,
-          sender_email: senderEmail,
-          sender_title: senderTitle,
+          sender_name:     senderName,
+          sender_email:    senderEmail,
+          sender_title:    senderTitle,
           subject,
           body,
-          has_attachment: template.email?.has_attachment ?? false,
+          has_attachment:  template.email?.has_attachment  ?? false,
           attachment_name: template.email?.attachment_name ?? null,
         },
-        target_elements: template.detection_criteria?.target_elements ?? [],
-        success_action: template.detection_criteria?.success_action ?? [],
-        fail_actions: template.detection_criteria?.fail_actions ?? [],
-        time_pressure_ms: timePressure * 1000,
-        indicators: template.detection_criteria?.indicators ?? [],
-        best_practice: template.detection_criteria?.best_practice ?? "",
-        mitre_id: template.detection_criteria?.mitre_id ?? "",
-        mitre_description: template.detection_criteria?.mitre_description ?? "",
+        // Vector-type-specific config blocks — passed through if present
+        ...(dc.portal  ? { portal:  dc.portal  } : {}),
+        ...(dc.profile ? { profile: dc.profile } : {}),
+        ...(dc.geo     ? { geo:     dc.geo     } : {}),
       },
     }
     onSave(vectorData)

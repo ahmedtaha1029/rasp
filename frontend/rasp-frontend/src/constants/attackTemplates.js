@@ -1,306 +1,5 @@
-// // src/constants/attackTemplates.js
-// //
-// // Pre-built attack templates for the admin scenario builder.
-// // Admin picks one from this pool, then customizes the text fields.
-// // Each template maps directly to the AttackVector detection_criteria schema.
-// //
-// // USAGE: Admin selects a template → fields pre-fill → admin edits if needed → saves.
-
-// export const ATTACK_CATEGORIES = [
-//   { id: "phishing_link",    label: "Phishing Link",         color: "#ef4444" },
-//   { id: "attachment",  label: "Malicious Attachment",  color: "#f97316" },
-//   { id: "extraction",  label: "Info Extraction",       color: "#eab308" },
-//   { id: "impersonation", label: "Impersonation",       color: "#a855f7" },
-// ]
-
-// // Each template has:
-// //   - id, name, category
-// //   - email: the fake email content (admin can edit these)
-// //   - detection_criteria: what the backend uses to score the user's response
-// //   - indicators: the red flags the user should spot
-
-// export const ATTACK_TEMPLATES = [
-
-//   // -----------------------------------------------------------------------
-//   // PHISHING LINK templates
-//   // -----------------------------------------------------------------------
-//   {
-//     id: "phishing_linkedin",
-//     name: "Fake LinkedIn Assessment",
-//     category: "phishing_link",
-//     description: "Spoofed LinkedIn recruiter with fake assessment portal link",
-//     email: {
-//       sender_name:    "Sarah Reynolds",
-//       sender_email:   "sarah.reynolds@techcorp-global.net",
-//       sender_title:   "Senior Talent Acquisition Specialist at TechCorp Global",
-//       subject:        "Exciting Senior Developer Opportunity – Action Required",
-//       body: `Hi,
-
-// I came across your profile and I'm very impressed with your background!
-
-// We have an urgent opening for a Senior Developer role at TechCorp Global that I think would be a perfect fit for you. The position offers $180,000–$220,000 base salary + equity.
-
-// We need to fill this role within 48 hours due to a critical project deadline.
-
-// Please complete our quick pre-screening assessment to move forward. It only takes 5 minutes:
-
-// 👉 Click here to complete your assessment (linkedln.com/assessment/tc-2024)
-
-// Looking forward to hearing from you!
-
-// Best,
-// Sarah Reynolds
-// sarah.reynolds@techcorp-global.net`,
-//     },
-//     detection_criteria: {
-//       target_elements:   ["btn-flag", "phishing-link", "btn-reply", "btn-delete", "btn-forward"],
-//       success_action:    ["flag", "delete"],
-//       fail_actions:      ["click", "reply", 'forward'],
-//       time_pressure_ms:  30000,
-//       indicators: [
-//         "Spoofed domain: 'linkedln.com' (letter swap: n replaces i)",
-//         "Sender email domain doesn't match company name",
-//         "Extreme urgency: 48-hour deadline to pressure fast action",
-//         "Salary promise unusually high to override skepticism",
-//       ],
-//       best_practice:
-//         "Always hover over links to inspect the real URL before clicking. Verify the sender's domain matches the company they claim to represent.",
-//       mitre_id:          "T1566",
-//       mitre_description: "Phishing: spearphishing link via fake recruitment message",
-//     },
-//   },
-
-//   {
-//     id: "phishing_job_portal",
-//     name: "Fake Job Portal Login",
-//     category: "phishing_link",
-//     description: "Redirects victim to a credential-harvesting job portal clone",
-//     email: {
-//       sender_name:    "Michael Torres",
-//       sender_email:   "m.torres@hirequest-talent.co",
-//       sender_title:   "Executive Recruiter at HireQuest",
-//       subject:        "Your application has been shortlisted",
-//       body: `Hello,
-
-// Congratulations! You have been shortlisted for the Lead Engineer position at our client.
-
-// To proceed, please log in to our candidate portal to schedule your interview and review the offer letter:
-
-// 🔗 Login here: careers-hirequest.co/portal
-
-// Your temporary access code is: HQ-7842-XZ
-
-// This link expires in 24 hours.
-
-// Regards,
-// Michael Torres
-// HireQuest Talent Solutions`,
-//     },
-//     detection_criteria: {
-//       target_elements:   ["btn-flag", "portal-link", "btn-reply", "btn-delete", "btn-forward"],
-//       success_action:    ["flag", "delete"],
-//       fail_actions:      ["click", "reply", "forward"],
-//       time_pressure_ms:  25000,
-//       indicators: [
-//         "Domain 'careers-hirequest.co' is different from 'hirequest-talent.co' — inconsistency",
-//         "Unsolicited shortlist notification with no previous contact",
-//         "24-hour expiry creates artificial urgency",
-//         "Temporary access code tactic to seem legitimate",
-//       ],
-//       best_practice:
-//         "Never log into a portal sent via an unsolicited email. Go directly to the company's official website and log in from there.",
-//       mitre_id:          "T1566.002",
-//       mitre_description: "Phishing: spearphishing link targeting credentials",
-//     },
-//   },
-
-//   // -----------------------------------------------------------------------
-//   // MALICIOUS ATTACHMENT templates
-//   // -----------------------------------------------------------------------
-//   {
-//     id: "attachment_pdf_exe",
-//     name: "Double-Extension Job Offer",
-//     category: "attachment",
-//     description: "Executable disguised as a PDF using double extension trick",
-//     email: {
-//       sender_name:    "Jennifer Park",
-//       sender_email:   "j.park@global-staffing-hub.com",
-//       sender_title:   "Recruitment Lead",
-//       subject:        "Offer Letter – Please Review and Sign",
-//       body: `Dear Candidate,
-
-// We are pleased to extend a formal offer for the Software Engineer position.
-
-// Please find the offer letter attached. Review and return a signed copy by end of day tomorrow.
-
-// Compensation: $145,000 base + $20,000 signing bonus
-
-// Best regards,
-// Jennifer Park
-// Global Staffing Hub`,
-//     },
-//     detection_criteria: {
-//       target_elements:   ["btn-flag", "attachment-download", "btn-reply", "btn-delete", "btn-forward"],
-//       success_action:    ["flag", "delete"],
-//       fail_actions:      ["download", "reply", "forward"],
-//       time_pressure_ms:  35000,
-//       indicators: [
-//         "File is named 'OfferLetter.pdf.exe' — .exe hidden behind .pdf",
-//         "Sender domain 'global-staffing-hub.com' is generic and unverifiable",
-//         "No prior conversation — unsolicited offer letter",
-//         "Deadline pressure: 'by end of day tomorrow'",
-//       ],
-//       best_practice:
-//         "Always check the actual file extension before opening. On Windows, enable 'Show file extensions' in File Explorer. An offer letter should never be an .exe file.",
-//       mitre_id:          "T1204.002",
-//       mitre_description: "User execution: malicious file with disguised extension",
-//     },
-//   },
-
-//   {
-//     id: "attachment_macro",
-//     name: "Contract with Macro",
-//     category: "attachment",
-//     description: "Word document with embedded macro requesting macro enable",
-//     email: {
-//       sender_name:    "David Chen",
-//       sender_email:   "dchen@nexus-partners.io",
-//       sender_title:   "Managing Partner at Nexus",
-//       subject:        "NDA and Contract — Requires Your Signature",
-//       body: `Hello,
-
-// As discussed, please find the attached NDA and consulting contract.
-
-// Note: You'll need to click "Enable Content" when opening the document so the signature fields load correctly.
-
-// Please return signed copies within 48 hours.
-
-// David Chen
-// Nexus Partners`,
-//     },
-//     detection_criteria: {
-//       target_elements:   ["btn-flag", "attachment-download", "btn-reply", "btn-delete", "btn-forward"],
-//       success_action:    ["flag", "delete"],
-//       fail_actions:      ["download", "reply", "forward"],
-//       time_pressure_ms:  35000,
-//       indicators: [
-//         "Request to 'Enable Content' / macros in a Word doc is a classic malware vector",
-//         "Pressure to sign in 48 hours limits time to verify",
-//         "NDA sent by email without any prior meeting or video call",
-//         "'As discussed' implies prior relationship that doesn't exist",
-//       ],
-//       best_practice:
-//         "Legitimate contracts never require you to enable macros. If asked to do so, treat the file as malicious and report it.",
-//       mitre_id:          "T1566.001",
-//       mitre_description: "Phishing: spearphishing attachment with malicious macro",
-//     },
-//   },
-
-//   // -----------------------------------------------------------------------
-//   // INFO EXTRACTION templates
-//   // -----------------------------------------------------------------------
-//   {
-//     id: "extraction_reference",
-//     name: "Reference Check Extraction",
-//     category: "extraction",
-//     description: "Poses as legitimate reference checker to extract employee info",
-//     email: {
-//       sender_name:    "Amanda Wells",
-//       sender_email:   "awells@bg-verification-corp.com",
-//       sender_title:   "Background Verification Specialist",
-//       subject:        "Reference Check for [Candidate Name] — Urgent",
-//       body: `Dear HR,
-
-// We are conducting a background check on a candidate who listed your organization as a previous employer.
-
-// Could you please confirm the following before 3pm today:
-// - Employment dates
-// - Role and department
-// - Direct manager's name and email
-// - Reason for leaving
-// - Any disciplinary actions
-
-// This is time-sensitive as the candidate's start date is tomorrow.
-
-// Amanda Wells
-// BG Verification Corp`,
-//     },
-//     detection_criteria: {
-//       target_elements:   ["btn-reply", "btn-forward", "btn-flag", "btn-delete",],
-//       success_action:    ["flag", "delete"],
-//       fail_actions:      ["reply", "forward"],
-//       time_pressure_ms:  40000,
-//       indicators: [
-//         "Requesting sensitive employee data via email from unverifiable source",
-//         "'Urgent' and same-day deadline limit time to verify authenticity",
-//         "Asking for manager names and emails; org chart harvesting",
-//         "Generic sender domain 'bg-verification-corp.com'; not a known company",
-//       ],
-//       best_practice:
-//         "Never share employee information via email without verifying the requester through official channels. Call the company directly using a number from their official website.",
-//       mitre_id:          "T1598",
-//       mitre_description: "Phishing for information: social engineering via fake reference check",
-//     },
-//   },
-
-//   // -----------------------------------------------------------------------
-//   // IMPERSONATION templates
-//   // -----------------------------------------------------------------------
-//   {
-//     id: "impersonation_ceo",
-//     name: "CEO Impersonation — Urgent Wire",
-//     category: "impersonation",
-//     description: "Attacker impersonates CEO asking HR to process urgent payment",
-//     email: {
-//       sender_name:    "Robert Mitchell (CEO)",
-//       sender_email:   "rmitchell@company-corp.net",
-//       sender_title:   "Chief Executive Officer",
-//       subject:        "Confidential — Urgent Action Required",
-//       body: `Hi,
-
-// I'm in a meeting and can't talk. I need you to process an urgent vendor payment of $47,500 to a new supplier.
-
-// This is time-sensitive and confidential — please don't discuss with anyone until it's done.
-
-// Wire to:
-// Account: 4829-1047-2938
-// Routing: 021000089
-
-// Confirm when done.
-
-// Robert Mitchell
-// CEO`,
-//     },
-//     detection_criteria: {
-//       target_elements:   ["btn-reply", "btn-flag", "btn-delete", "btn-forward"],
-//       success_action:    ["flag", "delete"],
-//       fail_actions:      ["reply", "forward"],
-//       time_pressure_ms:  30000,
-//       indicators: [
-//         "Sender email 'company-corp.net' does not match actual company domain",
-//         "Request for secrecy — 'don't discuss with anyone' is a social engineering tactic",
-//         "Unusual channel: CEOs don't typically send wire transfer instructions via email",
-//         "Urgency combined with secrecy is the hallmark of BEC (Business Email Compromise)",
-//       ],
-//       best_practice:
-//         "Any financial request via email should be verified by calling the person directly. BEC attacks (Business Email Compromise) cause billions in losses annually.",
-//       mitre_id:          "T1656",
-//       mitre_description: "Impersonation: business email compromise targeting HR/finance",
-//     },
-//   },
-// ]
-
-// // Helper: get a template by ID
-// export const getTemplate = (id) =>
-//   ATTACK_TEMPLATES.find((t) => t.id === id) || null
-
-// // Helper: get templates by category
-// export const getTemplatesByCategory = (categoryId) =>
-//   ATTACK_TEMPLATES.filter((t) => t.category === categoryId)
-
 // src/constants/attackTemplates.js
-// Updated: Fix #6 (credential_form), Fix #7 (fake_identity),
-//          Fix #8 (geographic), Fix #20 (3-vector advanced template)
+
 
 export const ATTACK_CATEGORIES = [
   { id: "phishing_link",    label: "Phishing Link",            color: "#ef4444" },
@@ -341,7 +40,7 @@ export const ATTACK_TEMPLATES = [
     },
     detection_criteria: {
       target_elements:  ["btn-flag", "phishing-link", "btn-reply", "btn-delete", "btn-forward"],
-      passing_conditions:  [{ action: "flag" }, { action: "delete" }],
+      passing_conditions:  [{ action: "flag" }],
       fail_conditions:     [{ action: "click", element: "phishing-link" }, { action: "reply" }, { action: "forward" }],
       partial_credit_events: [{ action: "delete" }],
       time_pressure_ms: 30000,
@@ -371,7 +70,7 @@ export const ATTACK_TEMPLATES = [
     },
     detection_criteria: {
       target_elements:  ["btn-flag", "portal-link", "btn-reply", "btn-delete", "btn-forward"],
-      passing_conditions:  [{ action: "flag" }, { action: "delete" }],
+      passing_conditions:  [{ action: "flag" }],
       fail_conditions:     [{ action: "click" }, { action: "reply" }, { action: "forward" }],
       partial_credit_events: [{ action: "delete" }],
       time_pressure_ms: 25000,
@@ -405,7 +104,7 @@ export const ATTACK_TEMPLATES = [
     },
     detection_criteria: {
       target_elements:  ["btn-flag", "attachment-download", "btn-delete"],
-      passing_conditions:  [{ action: "flag" }, { action: "delete" }],
+      passing_conditions:  [{ action: "flag" }],
       fail_conditions:     [{ action: "download" }, { action: "reply" }, { action: "forward" }],
       partial_credit_events: [{ action: "delete" }],
       time_pressure_ms: 35000,
@@ -437,7 +136,7 @@ export const ATTACK_TEMPLATES = [
     },
     detection_criteria: {
       target_elements:  ["btn-flag", "attachment-download", "btn-delete"],
-      passing_conditions:  [{ action: "flag" }, { action: "delete" }],
+      passing_conditions:  [{ action: "flag" }],
       fail_conditions:     [{ action: "download" }, { action: "reply" }, { action: "forward" }],
       partial_credit_events: [{ action: "delete" }],
       time_pressure_ms: 35000,
@@ -470,7 +169,7 @@ export const ATTACK_TEMPLATES = [
     },
     detection_criteria: {
       target_elements:  ["btn-reply", "btn-forward", "btn-flag", "btn-delete"],
-      passing_conditions:  [{ action: "flag" }, { action: "delete" }],
+      passing_conditions:  [{ action: "flag" }],
       fail_conditions:     [{ action: "reply" }, { action: "forward" }],
       partial_credit_events: [{ action: "delete" }],
       time_pressure_ms: 40000,
@@ -503,7 +202,7 @@ export const ATTACK_TEMPLATES = [
     },
     detection_criteria: {
       target_elements:  ["btn-reply", "btn-flag", "btn-delete", "btn-forward"],
-      passing_conditions:  [{ action: "flag" }, { action: "delete" }],
+      passing_conditions:  [{ action: "flag" }],
       fail_conditions:     [{ action: "reply" }, { action: "forward" }],
       partial_credit_events: [{ action: "delete" }],
       time_pressure_ms: 30000,
